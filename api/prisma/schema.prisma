@@ -22,5 +22,24 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @default(now()) @map("updated_at")
 
+  collections Collection[]
+
   @@map("users")
+}
+
+model Collection {
+  collectionId  String    @id @default(uuid()) @map("collection_id") @db.Uuid
+  userId        String    @map("user_id") @db.Uuid
+  wasteType     String    @map("waste_type_id")
+  dateScheduled DateTime  @map("date_scheduled")
+  dateCollected DateTime? @map("date_collected")
+  status        String    @default("SCHEDULED")
+  weightKg      Float?    @default(0) @map("weight_kg")
+  pointsEarned  Int?      @default(0) @map("points_earned")
+  createdAt     DateTime  @default(now()) @map("created_at")
+  updatedAt     DateTime  @default(now()) @map("updated_at")
+
+  user User @relation(fields: [userId], references: [userId])
+
+  @@map("collections")
 }
