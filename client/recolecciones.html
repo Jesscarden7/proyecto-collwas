@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>COLLWAS - Recolecciones</title>
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="flex bg-gray-100 min-h-screen">
+    <!-- Panel lateral azul claro -->
+    <aside
+      class="w-64 bg-blue-100 text-gray-800 p-6 flex flex-col justify-between shadow-lg"
+    >
+      <div>
+        <h1 class="text-3xl font-bold text-green-700 mb-10 text-center">
+          COLLWAS
+        </h1>
+        <nav class="space-y-3">
+          <a
+            href="dashboard.html"
+            class="block rounded-lg px-4 py-2 hover:bg-blue-200 transition"
+            >Dashboard</a
+          >
+          <a
+            href="recolecciones.html"
+            class="block bg-green-600 text-white rounded-lg px-4 py-2 font-medium hover:bg-green-700 transition"
+            >Recolecciones</a
+          >
+          <a
+            href="reportes.html"
+            class="block rounded-lg px-4 py-2 hover:bg-blue-200 transition"
+            >Reportes</a
+          >
+        </nav>
+      </div>
+      <button
+        id="logoutBtn"
+        class="bg-red-500 text-white rounded-lg py-2 mt-6 hover:bg-red-600 transition"
+      >
+        Cerrar sesión
+      </button>
+    </aside>
+
+    <!-- Contenido principal -->
+    <main class="flex-1 p-10">
+      <h2 class="text-2xl font-semibold mb-6 text-green-700">
+        Programar Recolección
+      </h2>
+
+      <form
+        id="recoleccionForm"
+        class="bg-white shadow-lg rounded-xl p-6 w-full md:w-2/3 lg:w-1/2"
+      >
+        <div class="mb-4">
+          <label class="block mb-1 font-medium">Tipo de residuo</label>
+          <select id="tipo" class="w-full border rounded-lg p-2" required>
+            <option value="">Seleccionar</option>
+            <option value="orgánico">Orgánico</option>
+            <option value="inorgánico">Inorgánico</option>
+            <option value="peligroso">Peligroso</option>
+          </select>
+        </div>
+
+        <div class="mb-4">
+          <label class="block mb-1 font-medium">Fecha</label>
+          <input
+            type="date"
+            id="fecha"
+            class="w-full border rounded-lg p-2"
+            required
+          />
+        </div>
+
+        <div class="mb-4">
+          <label class="block mb-1 font-medium">Hora</label>
+          <input
+            type="time"
+            id="hora"
+            class="w-full border rounded-lg p-2"
+            required
+          />
+        </div>
+
+        <button
+          type="submit"
+          class="w-full bg-green-600 text-white py-2 rounded-lg font-semibold hover:bg-green-700 transition"
+        >
+          Programar Recolección
+        </button>
+
+        <div id="recoleccionMsg" class="text-center mt-3 text-sm"></div>
+      </form>
+    </main>
+
+    <script>
+      const backendURL = "http://localhost:3000";
+
+      // --- Botón de logout ---
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        localStorage.removeItem("user");
+        window.location.href = "index.html";
+      });
+
+      // --- Verificar si el usuario está logueado ---
+      const user = JSON.parse(localStorage.getItem("user"));
+
+      if (!user) {
+        window.location.href = "index.html";
+      }
+
+      // --- Manejador del formulario de recolección ---
+      const form = document.getElementById("recoleccionForm");
+      const message = document.getElementById("recoleccionMsg");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+
+        const tipo = document.getElementById("tipo").value;
+        const fecha = document.getElementById("fecha").value;
+        const hora = document.getElementById("hora").value;
+
+        if (!tipo || !fecha || !hora) {
+          message.innerHTML =
+            '<span class="text-red-600">Por favor complete todos los campos.</span>';
+          return;
+        }
+
+        // Convertir fecha y hora a formato ISO (ej: "2025-10-06T14:30:00Z")
+        const dateScheduled = new Date(`${fecha}T${hora}`).toISOString();
+
+        // Mapear tipo de residuo a los valores esperados por el backend
+        let wasteType;
+        switch (tipo.toLowerCase()) {
+          case "inorgánico":
+            wasteType = "INORGANIC";
+            break;
+          case "peligroso":
+            wasteType = "HAZARDOUS";
+            break;
+          default:
+            message.innerHTML =
+              '<span class="text-red-600">Tipo de residuo no válido.</span>';
+            return;
+        }
+
+        try {
+          const body = JSON.stringify({
+            userId: user.user.id,
+            wasteType,
+            dateScheduled: dateScheduled,
+          });
+
+          const response = await fetch(`${backendURL}/collections`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body,
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            message.innerHTML =
+              '<span class="text-green-600">Recolección programada correctamente ✔️</span>';
+            setTimeout(() => {
+              window.location.href = "reportes.html"; // redirige automáticamente
+            }, 1200);
+          } else {
+            message.innerHTML = `<span class="text-red-600">${
+              data.message || "Error al programar la recolección."
+            }</span>`;
+          }
+        } catch (error) {
+          console.error("Error:", error);
+          message.innerHTML =
+            '<span class="text-red-600">Error de conexión con el servidor.</span>';
+        }
+      });
+    </script>
+  </body>
+</html>

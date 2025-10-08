@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>COLLWAS - Reportes de Usuario</title>
+    <!-- Tailwind CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="flex bg-gray-100 min-h-screen">
+    <!-- Panel lateral azul claro -->
+    <aside
+      class="w-64 bg-blue-100 text-gray-800 p-6 flex flex-col justify-between shadow-lg"
+    >
+      <div>
+        <h1 class="text-3xl font-bold text-green-700 mb-10 text-center">
+          COLLWAS
+        </h1>
+        <nav class="space-y-3">
+          <a
+            href="dashboard.html"
+            class="block rounded-lg px-4 py-2 hover:bg-blue-200 transition"
+            >Dashboard</a
+          >
+          <a
+            href="recolecciones.html"
+            class="block rounded-lg px-4 py-2 hover:bg-blue-200 transition"
+            >Recolecciones</a
+          >
+          <a
+            href="reportes.html"
+            class="block bg-green-600 text-white rounded-lg px-4 py-2 font-medium hover:bg-green-700 transition"
+            >Reportes</a
+          >
+        </nav>
+      </div>
+      <button
+        id="logoutBtn"
+        class="bg-red-500 text-white rounded-lg py-2 mt-6 hover:bg-red-600 transition"
+      >
+        Cerrar sesión
+      </button>
+    </aside>
+
+    <!-- Contenido principal -->
+    <main class="flex-1 p-10">
+      <h2 class="text-2xl font-semibold mb-6 text-green-700">
+        Reportes de Usuario
+      </h2>
+
+      <div class="bg-white shadow-lg rounded-xl p-6 overflow-x-auto">
+        <table class="min-w-full text-left border border-gray-200">
+          <thead class="bg-green-600 text-white">
+            <tr>
+              <th class="py-2 px-4">Fecha</th>
+              <th class="py-2 px-4">Tipo</th>
+              <th class="py-2 px-4">Peso</th>
+              <th class="py-2 px-4">Puntos</th>
+            </tr>
+          </thead>
+          <tbody id="tablaReportes" class="divide-y divide-gray-200">
+            <!-- Los reportes se insertarán aquí dinámicamente -->
+          </tbody>
+        </table>
+      </div>
+
+      <div id="mensajeReporte" class="text-center text-sm mt-3"></div>
+    </main>
+
+    <script>
+      const backendURL = "http://localhost:3000";
+
+      // --- Botón de logout ---
+      document.getElementById("logoutBtn").addEventListener("click", () => {
+        localStorage.removeItem("user");
+        window.location.href = "index.html";
+      });
+
+      // --- Verificar usuario logueado ---
+      const user = JSON.parse(localStorage.getItem("user"));
+      if (!user) {
+        window.location.href = "index.html";
+      }
+
+      const userId = user.user.id || user.userId || user._id;
+      const tabla = document.getElementById("tablaReportes");
+      const mensaje = document.getElementById("mensajeReporte");
+
+      // --- Cargar reportes del backend ---
+      async function cargarReportes() {
+        try {
+          const response = await fetch(
+            `${backendURL}/collections/user/${userId}`
+          );
+          const data = await response.json();
+
+          tabla.innerHTML = ""; // limpiar contenido previo
+
+          if (response.ok && Array.isArray(data) && data.length > 0) {
+            data.forEach((r) => {
+              const fecha = new Date(r.dateScheduled).toLocaleDateString(
+                "es-CO"
+              );
+              const tipo =
+                r.wasteType === "INORGANIC" ? "Inorgánico" : "Peligroso";
+              const fila = document.createElement("tr");
+
+              fila.innerHTML = `
+              <td class="py-2 px-4">${fecha}</td>
+              <td class="py-2 px-4">${tipo}</td>
+              <td class="py-2 px-4">${r.weightKg ?? 0} kg</td>
+              <td class="py-2 px-4">${r.pointsEarned ?? 0}</td>
+            `;
+              tabla.appendChild(fila);
+            });
+            mensaje.textContent = "";
+          } else {
+            mensaje.innerHTML =
+              '<span class="text-gray-500">No hay recolecciones registradas aún.</span>';
+          }
+        } catch (error) {
+          console.error("Error al cargar reportes:", error);
+          mensaje.innerHTML =
+            '<span class="text-red-600">Error al conectar con el servidor.</span>';
+        }
+      }
+
+      // Cargar reportes al abrir la página
+      cargarReportes();
+    </script>
+  </body>
+</html>
